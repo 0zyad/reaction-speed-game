@@ -12,8 +12,14 @@ resource "aws_dynamodb_table" "games" {
   name         = "Games"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "gameId"
-  attribute { name = "gameId" type = "S" }
-  ttl { attribute_name = "expiresAt" enabled = true }
+  attribute {
+    name = "gameId"
+    type = "S"
+  }
+  ttl {
+    attribute_name = "expiresAt"
+    enabled        = true
+  }
 }
 
 resource "aws_dynamodb_table" "players" {
@@ -21,8 +27,14 @@ resource "aws_dynamodb_table" "players" {
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "gameId"
   range_key    = "playerId"
-  attribute { name = "gameId" type = "S" }
-  attribute { name = "playerId" type = "S" }
+  attribute {
+    name = "gameId"
+    type = "S"
+  }
+  attribute {
+    name = "playerId"
+    type = "S"
+  }
 }
 
 resource "aws_dynamodb_table" "results" {
@@ -30,8 +42,14 @@ resource "aws_dynamodb_table" "results" {
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "gameId"
   range_key    = "playerId"
-  attribute { name = "gameId" type = "S" }
-  attribute { name = "playerId" type = "S" }
+  attribute {
+    name = "gameId"
+    type = "S"
+  }
+  attribute {
+    name = "playerId"
+    type = "S"
+  }
 }
 
 resource "aws_iam_role" "lambda_role" {
