@@ -1,268 +1,758 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>⚡ Reaction Speed Game</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: Arial, sans-serif;
-      background: #0a0a1a;
-      color: white;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .screen { display: none; text-align: center; padding: 40px; width: 100%; max-width: 500px; }
-    .screen.active { display: block; }
-    h1 { font-size: 2.5rem; margin-bottom: 10px; }
-    h2 { font-size: 1.8rem; margin-bottom: 20px; color: #64b5f6; }
-    input {
-      width: 100%; padding: 14px; margin: 10px 0;
-      border-radius: 8px; border: 2px solid #333;
-      background: #1a1a2e; color: white; font-size: 1.1rem;
-    }
-    input:focus { border-color: #64b5f6; outline: none; }
-    .btn {
-      width: 100%; padding: 16px; margin: 10px 0;
-      border-radius: 10px; border: none; cursor: pointer;
-      font-size: 1.2rem; font-weight: bold; transition: transform 0.1s;
-    }
-    .btn:hover { transform: scale(1.03); }
-    .btn-blue  { background: #1565c0; color: white; }
-    .btn-green { background: #2e7d32; color: white; }
-    .game-code {
-      font-size: 3rem; font-weight: bold; letter-spacing: 10px;
-      color: #ffd54f; background: #1a1a2e; padding: 20px;
-      border-radius: 12px; margin: 20px 0;
-    }
-    #player-list { list-style: none; margin: 15px 0; }
-    #player-list li {
-      background: #1a1a2e; padding: 12px; margin: 6px 0;
-      border-radius: 8px; font-size: 1.1rem;
-    }
-    #game-screen { transition: background 0.1s; min-height: 100vh;
-      display: none; flex-direction: column; align-items: center; justify-content: center; }
-    #game-screen.active { display: flex; }
-    #click-btn {
-      display: none;
-      width: 250px; height: 250px; border-radius: 50%;
-      background: #4caf50; border: 8px solid #81c784;
-      font-size: 2rem; font-weight: bold; cursor: pointer;
-      color: white; margin: 30px auto;
-      animation: pulse 0.5s infinite alternate;
-    }
-    @keyframes pulse {
-      from { transform: scale(1); }
-      to   { transform: scale(1.08); box-shadow: 0 0 40px #4caf50; }
-    }
-    #wait-message { font-size: 1.5rem; color: #90a4ae; margin: 20px 0; }
-    #results-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    #results-table th { background: #1565c0; padding: 12px; font-size: 1rem; }
-    #results-table td { background: #1a1a2e; padding: 12px; border-bottom: 1px solid #333; font-size: 1.1rem; }
-    #results-table tr:first-child td { background: #1b3a1b; }
-    .status-bar {
-      position: fixed; top: 0; left: 0; right: 0;
-      background: #1a237e; padding: 8px; text-align: center; font-size: 0.9rem; z-index: 100;
-    }
-    #my-time { font-size: 2rem; color: #ffd54f; margin: 15px 0; font-weight: bold; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ Reaction Speed Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #080810;
+  --surface: #10101c;
+  --surface2: #18182a;
+  --border: rgba(255,255,255,0.07);
+  --border-hover: rgba(255,255,255,0.13);
+  --accent: #00ff88;
+  --accent-dim: rgba(0,255,136,0.12);
+  --purple: #7c6fff;
+  --purple-dim: rgba(124,111,255,0.12);
+  --danger: #ff4d6d;
+  --warning: #ffca3a;
+  --text: #eeeef8;
+  --muted: #666680;
+  --mono: 'Space Mono', monospace;
+  --display: 'Syne', sans-serif;
+  --radius: 14px;
+}
+
+html, body { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--display);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
+}
+
+/* Subtle grid */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(124,111,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,111,255,0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none; z-index: 0;
+}
+
+/* Top glow */
+body::after {
+  content: '';
+  position: fixed; top: -10%; left: 50%; transform: translateX(-50%);
+  width: 700px; height: 300px;
+  background: radial-gradient(ellipse, rgba(0,255,136,0.06) 0%, transparent 65%);
+  pointer-events: none; z-index: 0;
+}
+
+/* ── STATUS BAR ── */
+.status-bar {
+  position: fixed; top: 0; left: 0; right: 0;
+  background: rgba(8,8,16,0.9);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  z-index: 200;
+  font-family: var(--mono); font-size: 11px;
+}
+.status-left { display: flex; align-items: center; gap: 8px; }
+.status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--muted); flex-shrink: 0;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.status-dot.ok    { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.status-dot.err   { background: var(--danger);  box-shadow: 0 0 8px var(--danger); }
+.status-dot.pulse { animation: statusPulse 1.2s ease infinite; }
+.status-label { color: var(--muted); }
+.status-url   { color: rgba(255,255,255,0.2); font-size: 10px; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── APP WRAPPER ── */
+.app {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 560px;
+  padding: 88px 20px 40px;
+}
+
+/* ── HEADER ── */
+.header { text-align: center; margin-bottom: 36px; animation: fadeDown 0.5s ease; }
+.eyebrow {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 4px;
+  color: var(--accent); text-transform: uppercase;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-bottom: 14px;
+}
+.eyebrow::before, .eyebrow::after { content: ''; flex: 1; max-width: 50px; height: 1px; background: var(--border); }
+h1 { font-size: 46px; font-weight: 800; letter-spacing: -2px; line-height: 0.95; }
+h1 em { color: var(--accent); font-style: normal; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 14px;
+  transition: border-color 0.25s;
+}
+.card:hover { border-color: var(--border-hover); }
+.card-label {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 3px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 18px;
+}
+
+/* ── INPUTS ── */
+label {
+  display: block; font-family: var(--mono); font-size: 11px;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 7px;
+}
+input[type="text"] {
+  width: 100%; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 9px;
+  color: var(--text); font-family: var(--mono); font-size: 15px;
+  padding: 12px 15px; outline: none; margin-bottom: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+input[type="text"]:focus { border-color: var(--purple); box-shadow: 0 0 0 3px var(--purple-dim); }
+input[type="text"]::placeholder { color: rgba(255,255,255,0.18); }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: none; border-radius: 9px;
+  font-family: var(--display); font-size: 14px; font-weight: 600;
+  cursor: pointer; padding: 13px 22px; width: 100%;
+  transition: all 0.15s ease; letter-spacing: 0.2px;
+}
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.btn-green  { background: var(--accent); color: #070f0a; }
+.btn-green:hover:not(:disabled)  { background: #00e87c; box-shadow: 0 6px 24px rgba(0,255,136,0.22); }
+.btn-purple { background: var(--purple); color: #fff; }
+.btn-purple:hover:not(:disabled) { background: #8f80ff; box-shadow: 0 6px 24px rgba(124,111,255,0.25); }
+.btn-ghost  { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-ghost:hover:not(:disabled)  { border-color: var(--border-hover); background: rgba(255,255,255,0.05); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover:not(:disabled) { background: #ff2a4f; box-shadow: 0 6px 24px rgba(255,77,109,0.28); }
+
+.btn-sm { padding: 9px 16px; font-size: 13px; width: auto; }
+
+/* ── TABS ── */
+.tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+.tab {
+  flex: 1; padding: 11px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 9px;
+  color: var(--muted); font-family: var(--mono); font-size: 11px;
+  cursor: pointer; text-align: center; transition: all 0.2s;
+  letter-spacing: 1px; text-transform: uppercase;
+}
+.tab.active { background: var(--purple-dim); border-color: var(--purple); color: var(--text); }
+
+/* ── GAME CODE DISPLAY ── */
+.code-display {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 20px; margin-bottom: 20px;
+}
+.code-display .code-val {
+  font-family: var(--mono); font-size: 36px; font-weight: 700;
+  color: var(--warning); letter-spacing: 8px;
+}
+.code-display .code-lbl { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+
+/* ── PLAYERS ── */
+.players-wrap { margin-bottom: 18px; }
+.player-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 13px; background: var(--surface2);
+  border-radius: 8px; margin-bottom: 7px;
+  animation: slideIn 0.25s ease;
+}
+.p-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; flex-shrink: 0;
+}
+.p-name { flex: 1; font-family: var(--mono); font-size: 13px; }
+.badge {
+  font-size: 10px; padding: 2px 8px; border-radius: 4px;
+  font-family: var(--mono); letter-spacing: 1px;
+}
+.badge-host { background: var(--purple-dim); color: var(--purple); }
+.badge-you  { background: rgba(255,255,255,0.06); color: var(--muted); }
+
+.no-players { font-family: var(--mono); font-size: 12px; color: var(--muted); text-align: center; padding: 20px 0; }
+
+/* ── GAME SCREEN ── */
+.game-wrap {
+  border: 2px solid var(--border); border-radius: var(--radius);
+  min-height: 220px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  padding: 40px 28px; margin-bottom: 14px;
+  cursor: default; user-select: none; transition: all 0.12s ease;
+  position: relative; overflow: hidden;
+}
+.game-wrap.state-wait   { background: var(--surface); border-color: var(--border); }
+.game-wrap.state-signal {
+  background: rgba(0,255,136,0.07); border-color: var(--accent);
+  box-shadow: 0 0 60px rgba(0,255,136,0.18), inset 0 0 80px rgba(0,255,136,0.06);
+  cursor: pointer; animation: signalPop 0.25s ease;
+}
+.game-wrap.state-done   { background: var(--purple-dim); border-color: var(--purple); }
+.game-wrap.state-early  { background: rgba(255,77,109,0.07); border-color: var(--danger); animation: shake 0.35s ease; }
+
+.g-icon  { font-size: 52px; margin-bottom: 16px; line-height: 1; }
+.g-title { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+.g-sub   { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.g-time  { font-family: var(--mono); font-size: 52px; font-weight: 700; color: var(--accent); margin-top: 10px; }
+
+/* countdown */
+.countdown { font-family: var(--mono); font-size: 72px; font-weight: 700; color: var(--warning); animation: cntPulse 0.85s ease infinite; }
+.countdown-lbl { font-family: var(--mono); font-size: 11px; letter-spacing: 3px; color: var(--muted); margin-bottom: 18px; }
+
+/* ── RESULTS ── */
+.winner-area { text-align: center; padding: 20px 0 28px; }
+.winner-emoji { font-size: 52px; margin-bottom: 10px; }
+.winner-name  { font-size: 26px; font-weight: 800; }
+.winner-time  { font-family: var(--mono); font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+.result-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 13px 15px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 10px;
+  margin-bottom: 8px; animation: slideIn 0.25s ease;
+}
+.result-row.r1 { border-color: rgba(255,202,58,0.35); background: rgba(255,202,58,0.05); }
+.result-row.r2 { border-color: rgba(180,180,180,0.2); }
+.result-row.r3 { border-color: rgba(180,100,40,0.2); }
+.result-row.rme { border-color: var(--purple); }
+.r-medal { font-size: 20px; min-width: 30px; text-align: center; }
+.r-name  { flex: 1; font-size: 15px; font-weight: 600; }
+.r-ms    { font-family: var(--mono); font-size: 14px; color: var(--accent); }
+.r-ms small { font-size: 11px; color: var(--muted); }
+
+/* ── DIVIDER ── */
+.divider { height: 1px; background: var(--border); margin: 6px 0 18px; }
+
+/* ── LOG ── */
+.log-box {
+  background: #030306; border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 12px; font-family: var(--mono);
+  font-size: 11px; max-height: 130px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+.le { padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.02); line-height: 1.65; }
+.le.s { color: var(--purple); }
+.le.r { color: var(--accent); }
+.le.e { color: var(--danger); }
+.le .lt { color: rgba(255,255,255,0.18); margin-right: 6px; }
+
+/* ── SCREENS ── */
+.screen { display: none; animation: fadeIn 0.28s ease; }
+.screen.active { display: block; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; top: 56px; left: 50%; transform: translateX(-50%) translateY(-70px);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 11px 20px;
+  font-family: var(--mono); font-size: 12px; z-index: 999;
+  transition: transform 0.28s ease; white-space: nowrap;
+  max-width: calc(100vw - 48px); text-align: center;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.ok  { border-color: var(--accent); color: var(--accent); }
+.toast.bad { border-color: var(--danger); color: var(--danger); }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeIn    { from { opacity:0; transform:translateY(8px);  } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeDown  { from { opacity:0; transform:translateY(-10px);} to { opacity:1; transform:translateY(0); } }
+@keyframes slideIn   { from { opacity:0; transform:translateX(-10px);} to { opacity:1; transform:translateX(0); } }
+@keyframes signalPop { 0%,100% { transform:scale(1); } 50% { transform:scale(1.015); } }
+@keyframes shake     { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px)} 75%{transform:translateX(7px)} }
+@keyframes cntPulse  { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.55;transform:scale(.96)} }
+@keyframes statusPulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+</style>
 </head>
 <body>
-  <div class="status-bar" id="status-bar">Connecting...</div>
 
-  <!-- SCREEN 1: HOME -->
-  <div class="screen active" id="home-screen">
-    <h1>⚡ Reaction Game</h1>
-    <p style="color:#90a4ae;margin-bottom:30px">Test your reaction speed against friends!</p>
-    <input type="text" id="player-name" placeholder="Your name" maxlength="20">
-    <button class="btn btn-blue" onclick="createGame()">🎮 Create New Game</button>
-    <div style="margin:15px 0;color:#555">— or join existing —</div>
-    <input type="text" id="join-code" placeholder="Game code (e.g. ABCD)" maxlength="4"
-           style="text-transform:uppercase;letter-spacing:5px;text-align:center">
-    <button class="btn btn-green" onclick="joinGame()">🚀 Join Game</button>
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="status-left">
+    <div class="status-dot pulse" id="sDot"></div>
+    <span class="status-label" id="sLabel">Connecting...</span>
+  </div>
+  <span class="status-url" id="sUrl">wss://a3kfvwmm01.execute-api.us-east-1.amazonaws.com/prod</span>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="app">
+
+  <!-- ══ HEADER ══ -->
+  <div class="header">
+    <div class="eyebrow">⚡ AWS Cloud Project</div>
+    <h1>REACTION<br><em>SPEED</em> GAME</h1>
   </div>
 
-  <!-- SCREEN 2: LOBBY -->
-  <div class="screen" id="lobby-screen">
-    <h2>Waiting Room</h2>
-    <p style="color:#90a4ae">Share this code with friends:</p>
-    <div class="game-code" id="lobby-code">----</div>
-    <p style="color:#90a4ae;margin-bottom:10px">Players joined:</p>
-    <ul id="player-list"></ul>
-    <button class="btn btn-green" id="start-btn" onclick="startGame()" style="display:none">
-      ▶ Start Game
-    </button>
-    <p id="waiting-text" style="color:#546e7a;margin-top:20px">Waiting for host to start...</p>
+  <!-- ══════════════════════════════════════════
+       SCREEN: HOME
+  ══════════════════════════════════════════ -->
+  <div class="screen active" id="s-home">
+
+    <div class="tabs">
+      <div class="tab active" id="tab-create" onclick="switchTab('create')">+ Create Game</div>
+      <div class="tab"        id="tab-join"   onclick="switchTab('join')">↩ Join Game</div>
+    </div>
+
+    <!-- Create panel -->
+    <div id="panel-create">
+      <div class="card">
+        <div class="card-label">New Game — You are the Host</div>
+        <label for="createName">Your Name</label>
+        <input type="text" id="createName" placeholder="Enter your name" maxlength="20">
+        <button class="btn btn-green" onclick="doCreateGame()">🎮 Create New Game</button>
+      </div>
+    </div>
+
+    <!-- Join panel -->
+    <div id="panel-join" style="display:none;">
+      <div class="card">
+        <div class="card-label">Join Existing Game</div>
+        <label for="joinName">Your Name</label>
+        <input type="text" id="joinName" placeholder="Enter your name" maxlength="20">
+        <label for="joinCode">Game Code</label>
+        <input type="text" id="joinCode" placeholder="4-letter code (e.g. ABCD)" maxlength="4"
+               oninput="this.value=this.value.toUpperCase()">
+        <button class="btn btn-purple" onclick="doJoinGame()">🚀 Join Game</button>
+      </div>
+    </div>
+
   </div>
 
-  <!-- SCREEN 3: GAME -->
-  <div class="screen" id="game-screen">
-    <h2 id="game-title">Get Ready!</h2>
-    <p id="wait-message">Wait for the green signal... don't click early!</p>
-    <button id="click-btn" onclick="submitReaction()">CLICK!</button>
+  <!-- ══════════════════════════════════════════
+       SCREEN: LOBBY
+  ══════════════════════════════════════════ -->
+  <div class="screen" id="s-lobby">
+    <div class="card">
+      <div class="card-label">Game Room</div>
+
+      <div class="code-display">
+        <div>
+          <div class="code-lbl">Game Code — Share with friends</div>
+          <div class="code-val" id="lobbyCode">----</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="copyCode()">⧉ Copy</button>
+      </div>
+
+      <div class="card-label">Players — <span id="pCount">0</span> joined</div>
+      <div class="players-wrap" id="playerList">
+        <div class="no-players">Waiting for players to join...</div>
+      </div>
+
+      <div id="hostCtrl" style="display:none;">
+        <div class="divider"></div>
+        <button class="btn btn-green" id="startBtn" onclick="doStartGame()">▶ Start Game</button>
+      </div>
+      <div id="guestCtrl" style="display:none;">
+        <p style="text-align:center;font-family:var(--mono);font-size:12px;color:var(--muted);padding-top:10px;">
+          Waiting for host to start the game...
+        </p>
+      </div>
+    </div>
+
+    <div class="card" style="padding:16px;">
+      <div class="card-label" style="margin-bottom:10px;">WebSocket Log</div>
+      <div class="log-box" id="log1"></div>
+    </div>
   </div>
 
-  <!-- SCREEN 4: RESULTS -->
-  <div class="screen" id="results-screen">
-    <h2>🏆 Results</h2>
-    <div id="my-time"></div>
-    <table id="results-table">
-      <thead>
-        <tr><th>Rank</th><th>Player</th><th>Time</th></tr>
-      </thead>
-      <tbody id="results-body"></tbody>
-    </table>
-    <button class="btn btn-blue" onclick="location.reload()">🔄 Play Again</button>
+  <!-- ══════════════════════════════════════════
+       SCREEN: GAME
+  ══════════════════════════════════════════ -->
+  <div class="screen" id="s-game">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div class="card-label" style="margin:0;">Reaction Test</div>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--muted);" id="gameRoomId"></span>
+      </div>
+
+      <!-- Countdown -->
+      <div id="cntWrap" style="text-align:center;padding:36px 0;">
+        <div class="countdown-lbl">GAME STARTING IN</div>
+        <div class="countdown" id="cntNum">3</div>
+      </div>
+
+      <!-- Reaction zone -->
+      <div id="rzWrap" style="display:none;">
+        <div class="game-wrap state-wait" id="rZone" onclick="handleClick()">
+          <div class="g-icon"  id="rIcon">⏳</div>
+          <div class="g-title" id="rTitle">Get Ready...</div>
+          <div class="g-sub"   id="rSub">Wait for the green signal — don't click yet!</div>
+          <div class="g-time"  id="rTime" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:16px;">
+      <div class="card-label" style="margin-bottom:10px;">WebSocket Log</div>
+      <div class="log-box" id="log2"></div>
+    </div>
   </div>
+
+  <!-- ══════════════════════════════════════════
+       SCREEN: RESULTS
+  ══════════════════════════════════════════ -->
+  <div class="screen" id="s-results">
+    <div class="card">
+      <div class="card-label">Final Results</div>
+
+      <div class="winner-area">
+        <div class="winner-emoji" id="wEmoji">🏆</div>
+        <div class="winner-name"  id="wName">—</div>
+        <div class="winner-time"  id="wTime"></div>
+      </div>
+
+      <div id="resultList"></div>
+
+      <div class="divider" style="margin-top:20px;"></div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="goLobby()">← Lobby</button>
+        <button class="btn btn-green" style="flex:1;" onclick="location.reload()">🔄 New Game</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
 
 <script>
-  // ====================================================
-  // IMPORTANT: Replace this URL after Person 1 deploys!
-  // ====================================================
-  const WS_URL = 'wss://REPLACE_WITH_PERSON_1_URL/prod';
+// ════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════
+const WS_URL = 'wss://a3kfvwmm01.execute-api.us-east-1.amazonaws.com/prod';
 
-  let ws = null;
-  let myName = '';
-  let currentGameId = '';
-  let isHost = false;
-  let hasClicked = false;
+// ════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════
+let ws          = null;
+let myName      = '';
+let gameId      = '';
+let isHost      = false;
+let players     = [];
+let signalAt    = null;
+let clicked     = false;
+let cntInterval = null;
 
-  function connect() {
-    ws = new WebSocket(WS_URL);
-    ws.onopen  = () => setStatus('Connected ✅');
-    ws.onclose = () => setStatus('Disconnected ❌ — refresh page');
-    ws.onerror = () => setStatus('Connection error ❌ — check URL');
+// ════════════════════════════════════════
+//  WEBSOCKET
+// ════════════════════════════════════════
+function connect() {
+  try { ws = new WebSocket(WS_URL); }
+  catch(e) { setStatus('err','Connection error'); return; }
 
-    ws.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-      console.log('📨 Received:', msg);
+  setStatus('pulse','Connecting...');
 
-      switch (msg.action) {
+  ws.onopen  = () => { setStatus('ok','Connected ✅'); toast('WebSocket connected!','ok'); };
+  ws.onclose = () => { setStatus('err','Disconnected ❌'); };
+  ws.onerror = () => { setStatus('err','Connection error ❌'); };
 
-        case 'gameCreated':
-          currentGameId = msg.gameId;
-          isHost = true;
-          ws.send(JSON.stringify({
-            action: 'joinGame',
-            gameId: currentGameId,
-            playerName: myName,
-          }));
-          break;
+  ws.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      log('r', JSON.stringify(msg));
+      onMessage(msg);
+    } catch(_) { log('r', e.data); }
+  };
+}
 
-        case 'playerJoined':
-          showScreen('lobby-screen');
-          document.getElementById('lobby-code').textContent = currentGameId;
-          const list = document.getElementById('player-list');
-          list.innerHTML = msg.players.map(p => `<li>👤 ${p}</li>`).join('');
-          if (isHost) {
-            document.getElementById('start-btn').style.display = 'block';
-            document.getElementById('waiting-text').style.display = 'none';
-          }
-          break;
+function send(obj) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) { toast('Not connected','bad'); return false; }
+  const s = JSON.stringify(obj);
+  ws.send(s);
+  log('s', s);
+  return true;
+}
 
-        case 'gameStarting':
-          showScreen('game-screen');
-          document.getElementById('game-screen').style.background = '#0a0a1a';
-          document.getElementById('game-title').textContent = 'Get Ready!';
-          document.getElementById('wait-message').textContent = 'Wait for the green signal...';
-          document.getElementById('click-btn').style.display = 'none';
-          hasClicked = false;
-          break;
+// ════════════════════════════════════════
+//  MESSAGE HANDLER
+// ════════════════════════════════════════
+function onMessage(msg) {
+  switch (msg.action) {
 
-        case 'SIGNAL':
-          // FLASH THE SCREEN GREEN!
-          document.getElementById('game-screen').style.background = '#1b5e20';
-          document.getElementById('game-title').textContent = '⚡ CLICK NOW! ⚡';
-          document.getElementById('wait-message').textContent = '';
-          document.getElementById('click-btn').style.display = 'block';
-          break;
+    // ── Server confirmed game was created → now joinGame ──
+    case 'gameCreated':
+      gameId = msg.gameId;
+      isHost = true;
+      send({ action: 'joinGame', gameId, playerName: myName });
+      break;
 
-        case 'reactionRecorded':
-          document.getElementById('game-title').textContent = `✅ ${msg.reactionMs}ms!`;
-          document.getElementById('wait-message').textContent = 'Waiting for other players...';
-          document.getElementById('click-btn').style.display = 'none';
-          document.getElementById('game-screen').style.background = '#0d47a1';
-          break;
+    // ── Someone joined (including us) ──
+    case 'playerJoined':
+      // If gameId not yet set (guest joined and got back this event)
+      if (!gameId) gameId = msg.gameId || gameId;
+      players = msg.players || players;
+      showScreen('s-lobby');
+      document.getElementById('lobbyCode').textContent = gameId;
+      document.getElementById('gameRoomId').textContent = gameId;
+      document.getElementById('pCount').textContent = players.length;
+      renderPlayers();
+      document.getElementById('hostCtrl').style.display  = isHost ? 'block' : 'none';
+      document.getElementById('guestCtrl').style.display = isHost ? 'none'  : 'block';
+      toast(`${msg.playerName} joined!`, 'ok');
+      break;
 
-        case 'RESULTS':
-          showResults(msg.rankings);
-          break;
-      }
-    };
+    // ── Game is starting ──
+    case 'gameStarting':
+      showScreen('s-game');
+      resetReaction();
+      startCountdown();
+      break;
+
+    // ── Green signal! ──
+    case 'SIGNAL':
+      signalAt = msg.signalAt || Date.now();
+      clicked  = false;
+      showSignal();
+      break;
+
+    // ── Server confirmed our reaction time ──
+    case 'reactionRecorded':
+      setDone(msg.reactionMs);
+      break;
+
+    // ── Final rankings ──
+    case 'RESULTS':
+      showResults(msg.rankings || []);
+      break;
+
+    case 'error':
+      toast(msg.message || 'Server error', 'bad');
+      break;
+  }
+}
+
+// ════════════════════════════════════════
+//  GAME ACTIONS
+// ════════════════════════════════════════
+function doCreateGame() {
+  const n = document.getElementById('createName').value.trim();
+  if (!n) { toast('Enter your name','bad'); return; }
+  myName = n; isHost = true;
+  send({ action: 'createGame' });
+}
+
+function doJoinGame() {
+  const n = document.getElementById('joinName').value.trim();
+  const c = document.getElementById('joinCode').value.trim().toUpperCase();
+  if (!n) { toast('Enter your name','bad'); return; }
+  if (!c || c.length !== 4) { toast('Enter 4-letter game code','bad'); return; }
+  myName = n; gameId = c; isHost = false;
+  send({ action: 'joinGame', gameId, playerName: myName });
+}
+
+function doStartGame() {
+  const ok = send({ action: 'startGame', gameId });
+  if (ok) {
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('startBtn').textContent = 'Starting...';
+  }
+}
+
+function handleClick() {
+  const z = document.getElementById('rZone');
+
+  if (z.className.includes('state-wait')) {
+    // Too early
+    z.className = 'game-wrap state-early';
+    document.getElementById('rIcon').textContent  = '✗';
+    document.getElementById('rTitle').textContent = 'Too Early!';
+    document.getElementById('rSub').textContent   = 'Wait for the green signal next time';
+    return;
   }
 
-  function createGame() {
-    myName = document.getElementById('player-name').value.trim();
-    if (!myName) { alert('Enter your name first!'); return; }
-    setStatus('Connecting...');
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-      connect();
-      setTimeout(() => ws.send(JSON.stringify({ action: 'createGame' })), 800);
+  if (z.className.includes('state-signal') && !clicked) {
+    clicked = true;
+    const now = Date.now();
+    const ms  = signalAt ? (now - signalAt) : 0;
+    send({ action: 'submitReaction', gameId, clickedAt: now });
+    setDone(ms);
+  }
+}
+
+// ════════════════════════════════════════
+//  COUNTDOWN + REACTION UI
+// ════════════════════════════════════════
+function startCountdown() {
+  clearInterval(cntInterval);
+  let n = 3;
+  document.getElementById('cntWrap').style.display = 'block';
+  document.getElementById('rzWrap').style.display  = 'none';
+  document.getElementById('cntNum').textContent    = n;
+
+  cntInterval = setInterval(() => {
+    n--;
+    if (n > 0) {
+      document.getElementById('cntNum').textContent = n;
     } else {
-      ws.send(JSON.stringify({ action: 'createGame' }));
+      clearInterval(cntInterval);
+      document.getElementById('cntWrap').style.display = 'none';
+      document.getElementById('rzWrap').style.display  = 'block';
+      resetReaction();
     }
+  }, 1000);
+}
+
+function resetReaction() {
+  const z = document.getElementById('rZone');
+  z.className = 'game-wrap state-wait';
+  document.getElementById('rIcon').textContent    = '⏳';
+  document.getElementById('rTitle').textContent   = 'Get Ready...';
+  document.getElementById('rSub').textContent     = "Wait for the green signal — don't click yet!";
+  document.getElementById('rTime').style.display  = 'none';
+  clicked = false;
+}
+
+function showSignal() {
+  const z = document.getElementById('rZone');
+  z.className = 'game-wrap state-signal';
+  document.getElementById('rIcon').textContent    = '⚡';
+  document.getElementById('rTitle').textContent   = 'CLICK NOW!';
+  document.getElementById('rSub').textContent     = 'Tap as fast as you can!';
+  document.getElementById('rTime').style.display  = 'none';
+}
+
+function setDone(ms) {
+  const z = document.getElementById('rZone');
+  z.className = 'game-wrap state-done';
+  document.getElementById('rIcon').textContent    = '✓';
+  document.getElementById('rTitle').textContent   = 'Reaction Recorded!';
+  document.getElementById('rSub').textContent     = 'Your time:';
+  const t = document.getElementById('rTime');
+  t.style.display  = 'block';
+  t.textContent    = ms + 'ms';
+}
+
+// ════════════════════════════════════════
+//  RESULTS
+// ════════════════════════════════════════
+function showResults(rankings) {
+  showScreen('s-results');
+  const medals = ['🥇','🥈','🥉'];
+  const cls    = ['r1','r2','r3'];
+
+  if (rankings.length) {
+    document.getElementById('wEmoji').textContent = '🏆';
+    document.getElementById('wName').textContent  = rankings[0].name;
+    document.getElementById('wTime').textContent  = rankings[0].ms + 'ms fastest reaction';
   }
 
-  function joinGame() {
-    myName = document.getElementById('player-name').value.trim();
-    const code = document.getElementById('join-code').value.trim().toUpperCase();
-    if (!myName) { alert('Enter your name first!'); return; }
-    if (!code)   { alert('Enter a game code!');     return; }
-    currentGameId = code;
-    setStatus('Connecting...');
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-      connect();
-      setTimeout(() => ws.send(JSON.stringify({ action: 'joinGame', gameId: currentGameId, playerName: myName })), 800);
-    } else {
-      ws.send(JSON.stringify({ action: 'joinGame', gameId: currentGameId, playerName: myName }));
-    }
-  }
+  document.getElementById('resultList').innerHTML = rankings.map((r,i) => {
+    const isMe = r.name === myName;
+    return `<div class="result-row ${cls[i]||''} ${isMe?'rme':''}">
+      <div class="r-medal">${medals[i] || '#'+r.rank}</div>
+      <div class="r-name">${esc(r.name)}${isMe ? ' <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">YOU</span>' : ''}</div>
+      <div class="r-ms">${r.ms}<small>ms</small></div>
+    </div>`;
+  }).join('');
+}
 
-  function startGame() {
-    ws.send(JSON.stringify({ action: 'startGame', gameId: currentGameId }));
-    document.getElementById('start-btn').style.display = 'none';
-  }
+// ════════════════════════════════════════
+//  RENDER PLAYERS
+// ════════════════════════════════════════
+const COLORS = ['#7c6fff','#00c97a','#ff6b6b','#ffca3a','#4cc9f0','#f72585'];
+function renderPlayers() {
+  const el = document.getElementById('playerList');
+  if (!players.length) { el.innerHTML = '<div class="no-players">No players yet...</div>'; return; }
+  el.innerHTML = players.map((p,i) => `
+    <div class="player-item">
+      <div class="p-avatar" style="background:${COLORS[i%COLORS.length]};color:#fff;">${p.slice(0,2).toUpperCase()}</div>
+      <div class="p-name">${esc(p)}</div>
+      ${i===0 ? '<span class="badge badge-host">HOST</span>' : ''}
+      ${p===myName ? '<span class="badge badge-you">YOU</span>' : ''}
+    </div>
+  `).join('');
+}
 
-  function submitReaction() {
-    if (hasClicked) return;
-    hasClicked = true;
-    ws.send(JSON.stringify({
-      action: 'submitReaction',
-      gameId: currentGameId,
-      clickedAt: Date.now(),
-    }));
-  }
+// ════════════════════════════════════════
+//  UI HELPERS
+// ════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
 
-  function showScreen(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-  }
+function setStatus(cls, label) {
+  document.getElementById('sDot').className = 'status-dot ' + cls;
+  document.getElementById('sLabel').textContent = label;
+}
 
-  function setStatus(msg) {
-    document.getElementById('status-bar').textContent = msg;
-  }
+function log(dir, msg) {
+  const t  = new Date().toLocaleTimeString('en-GB',{hour12:false});
+  const cl = dir === 's' ? 's' : 'r';
+  const ar = dir === 's' ? '↑ OUT' : '↓  IN';
+  const html = `<div class="le ${cl}"><span class="lt">${t}</span>${ar}  ${esc(msg.slice(0,130))}${msg.length>130?'…':''}</div>`;
+  ['log1','log2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML += html;
+    el.scrollTop  = el.scrollHeight;
+  });
+}
 
-  function showResults(rankings) {
-    showScreen('results-screen');
-    const myResult = rankings.find(r => r.name === myName);
-    if (myResult) {
-      document.getElementById('my-time').textContent =
-        `${myResult.medal || ''} Your time: ${myResult.ms}ms — Rank #${myResult.rank}`;
-    }
-    document.getElementById('results-body').innerHTML = rankings.map(r => `
-      <tr>
-        <td style="font-size:1.5rem">${r.medal || '#' + r.rank}</td>
-        <td>${r.name}</td>
-        <td><strong>${r.ms}</strong> ms</td>
-      </tr>
-    `).join('');
-  }
+let _toastTimer = null;
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className   = 'toast show ' + (type||'');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.className = 'toast', 2800);
+}
 
-  // Auto connect on load
-  connect();
+function switchTab(t) {
+  document.getElementById('panel-create').style.display = t==='create' ? 'block' : 'none';
+  document.getElementById('panel-join').style.display   = t==='join'   ? 'block' : 'none';
+  document.getElementById('tab-create').className = 'tab' + (t==='create'?' active':'');
+  document.getElementById('tab-join').className   = 'tab' + (t==='join'  ?' active':'');
+}
+
+function copyCode() {
+  navigator.clipboard.writeText(gameId).then(() => toast('Code copied: '+gameId,'ok'));
+}
+
+function goLobby() {
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('startBtn').textContent = '▶ Start Game';
+  showScreen('s-lobby');
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ════════════════════════════════════════
+//  BOOT
+// ════════════════════════════════════════
+connect();
 </script>
 </body>
 </html>
