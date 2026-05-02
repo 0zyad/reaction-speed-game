@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚡ Reaction Speed Game</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #0a0a1a;
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .screen { display: none; text-align: center; padding: 40px; width: 100%; max-width: 500px; }
+    .screen.active { display: block; }
+    h1 { font-size: 2.5rem; margin-bottom: 10px; }
+    h2 { font-size: 1.8rem; margin-bottom: 20px; color: #64b5f6; }
+    input {
+      width: 100%; padding: 14px; margin: 10px 0;
+      border-radius: 8px; border: 2px solid #333;
+      background: #1a1a2e; color: white; font-size: 1.1rem;
+    }
+    input:focus { border-color: #64b5f6; outline: none; }
+    .btn {
+      width: 100%; padding: 16px; margin: 10px 0;
+      border-radius: 10px; border: none; cursor: pointer;
+      font-size: 1.2rem; font-weight: bold; transition: transform 0.1s;
+    }
+    .btn:hover { transform: scale(1.03); }
+    .btn-blue  { background: #1565c0; color: white; }
+    .btn-green { background: #2e7d32; color: white; }
+    .game-code {
+      font-size: 3rem; font-weight: bold; letter-spacing: 10px;
+      color: #ffd54f; background: #1a1a2e; padding: 20px;
+      border-radius: 12px; margin: 20px 0;
+    }
+    #player-list { list-style: none; margin: 15px 0; }
+    #player-list li {
+      background: #1a1a2e; padding: 12px; margin: 6px 0;
+      border-radius: 8px; font-size: 1.1rem;
+    }
+    #game-screen { transition: background 0.1s; min-height: 100vh;
+      display: none; flex-direction: column; align-items: center; justify-content: center; }
+    #game-screen.active { display: flex; }
+    #click-btn {
+      display: none;
+      width: 250px; height: 250px; border-radius: 50%;
+      background: #4caf50; border: 8px solid #81c784;
+      font-size: 2rem; font-weight: bold; cursor: pointer;
+      color: white; margin: 30px auto;
+      animation: pulse 0.5s infinite alternate;
+    }
+    @keyframes pulse {
+      from { transform: scale(1); }
+      to   { transform: scale(1.08); box-shadow: 0 0 40px #4caf50; }
+    }
+    #wait-message { font-size: 1.5rem; color: #90a4ae; margin: 20px 0; }
+    #results-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    #results-table th { background: #1565c0; padding: 12px; font-size: 1rem; }
+    #results-table td { background: #1a1a2e; padding: 12px; border-bottom: 1px solid #333; font-size: 1.1rem; }
+    #results-table tr:first-child td { background: #1b3a1b; }
+    .status-bar {
+      position: fixed; top: 0; left: 0; right: 0;
+      background: #1a237e; padding: 8px; text-align: center; font-size: 0.9rem; z-index: 100;
+    }
+    #my-time { font-size: 2rem; color: #ffd54f; margin: 15px 0; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="status-bar" id="status-bar">Connecting...</div>
+
+  <!-- SCREEN 1: HOME -->
+  <div class="screen active" id="home-screen">
+    <h1>⚡ Reaction Game</h1>
+    <p style="color:#90a4ae;margin-bottom:30px">Test your reaction speed against friends!</p>
+    <input type="text" id="player-name" placeholder="Your name" maxlength="20">
+    <button class="btn btn-blue" onclick="createGame()">🎮 Create New Game</button>
+    <div style="margin:15px 0;color:#555">— or join existing —</div>
+    <input type="text" id="join-code" placeholder="Game code (e.g. ABCD)" maxlength="4"
+           style="text-transform:uppercase;letter-spacing:5px;text-align:center">
+    <button class="btn btn-green" onclick="joinGame()">🚀 Join Game</button>
+  </div>
+
+  <!-- SCREEN 2: LOBBY -->
+  <div class="screen" id="lobby-screen">
+    <h2>Waiting Room</h2>
+    <p style="color:#90a4ae">Share this code with friends:</p>
+    <div class="game-code" id="lobby-code">----</div>
+    <p style="color:#90a4ae;margin-bottom:10px">Players joined:</p>
+    <ul id="player-list"></ul>
+    <button class="btn btn-green" id="start-btn" onclick="startGame()" style="display:none">
+      ▶ Start Game
+    </button>
+    <p id="waiting-text" style="color:#546e7a;margin-top:20px">Waiting for host to start...</p>
+  </div>
+
+  <!-- SCREEN 3: GAME -->
+  <div class="screen" id="game-screen">
+    <h2 id="game-title">Get Ready!</h2>
+    <p id="wait-message">Wait for the green signal... don't click early!</p>
+    <button id="click-btn" onclick="submitReaction()">CLICK!</button>
+  </div>
+
+  <!-- SCREEN 4: RESULTS -->
+  <div class="screen" id="results-screen">
+    <h2>🏆 Results</h2>
+    <div id="my-time"></div>
+    <table id="results-table">
+      <thead>
+        <tr><th>Rank</th><th>Player</th><th>Time</th></tr>
+      </thead>
+      <tbody id="results-body"></tbody>
+    </table>
+    <button class="btn btn-blue" onclick="location.reload()">🔄 Play Again</button>
+  </div>
+
+<script>
+  // ====================================================
+  // IMPORTANT: Replace this URL after Person 1 deploys!
+  // ====================================================
+  const WS_URL = 'wss://REPLACE_WITH_PERSON_1_URL/prod';
+
+  let ws = null;
+  let myName = '';
+  let currentGameId = '';
+  let isHost = false;
+  let hasClicked = false;
+
+  function connect() {
+    ws = new WebSocket(WS_URL);
+    ws.onopen  = () => setStatus('Connected ✅');
+    ws.onclose = () => setStatus('Disconnected ❌ — refresh page');
+    ws.onerror = () => setStatus('Connection error ❌ — check URL');
+
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      console.log('📨 Received:', msg);
+
+      switch (msg.action) {
+
+        case 'gameCreated':
+          currentGameId = msg.gameId;
+          isHost = true;
+          ws.send(JSON.stringify({
+            action: 'joinGame',
+            gameId: currentGameId,
+            playerName: myName,
+          }));
+          break;
+
+        case 'playerJoined':
+          showScreen('lobby-screen');
+          document.getElementById('lobby-code').textContent = currentGameId;
+          const list = document.getElementById('player-list');
+          list.innerHTML = msg.players.map(p => `<li>👤 ${p}</li>`).join('');
+          if (isHost) {
+            document.getElementById('start-btn').style.display = 'block';
+            document.getElementById('waiting-text').style.display = 'none';
+          }
+          break;
+
+        case 'gameStarting':
+          showScreen('game-screen');
+          document.getElementById('game-screen').style.background = '#0a0a1a';
+          document.getElementById('game-title').textContent = 'Get Ready!';
+          document.getElementById('wait-message').textContent = 'Wait for the green signal...';
+          document.getElementById('click-btn').style.display = 'none';
+          hasClicked = false;
+          break;
+
+        case 'SIGNAL':
+          // FLASH THE SCREEN GREEN!
+          document.getElementById('game-screen').style.background = '#1b5e20';
+          document.getElementById('game-title').textContent = '⚡ CLICK NOW! ⚡';
+          document.getElementById('wait-message').textContent = '';
+          document.getElementById('click-btn').style.display = 'block';
+          break;
+
+        case 'reactionRecorded':
+          document.getElementById('game-title').textContent = `✅ ${msg.reactionMs}ms!`;
+          document.getElementById('wait-message').textContent = 'Waiting for other players...';
+          document.getElementById('click-btn').style.display = 'none';
+          document.getElementById('game-screen').style.background = '#0d47a1';
+          break;
+
+        case 'RESULTS':
+          showResults(msg.rankings);
+          break;
+      }
+    };
+  }
+
+  function createGame() {
+    myName = document.getElementById('player-name').value.trim();
+    if (!myName) { alert('Enter your name first!'); return; }
+    setStatus('Connecting...');
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      connect();
+      setTimeout(() => ws.send(JSON.stringify({ action: 'createGame' })), 800);
+    } else {
+      ws.send(JSON.stringify({ action: 'createGame' }));
+    }
+  }
+
+  function joinGame() {
+    myName = document.getElementById('player-name').value.trim();
+    const code = document.getElementById('join-code').value.trim().toUpperCase();
+    if (!myName) { alert('Enter your name first!'); return; }
+    if (!code)   { alert('Enter a game code!');     return; }
+    currentGameId = code;
+    setStatus('Connecting...');
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      connect();
+      setTimeout(() => ws.send(JSON.stringify({ action: 'joinGame', gameId: currentGameId, playerName: myName })), 800);
+    } else {
+      ws.send(JSON.stringify({ action: 'joinGame', gameId: currentGameId, playerName: myName }));
+    }
+  }
+
+  function startGame() {
+    ws.send(JSON.stringify({ action: 'startGame', gameId: currentGameId }));
+    document.getElementById('start-btn').style.display = 'none';
+  }
+
+  function submitReaction() {
+    if (hasClicked) return;
+    hasClicked = true;
+    ws.send(JSON.stringify({
+      action: 'submitReaction',
+      gameId: currentGameId,
+      clickedAt: Date.now(),
+    }));
+  }
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function setStatus(msg) {
+    document.getElementById('status-bar').textContent = msg;
+  }
+
+  function showResults(rankings) {
+    showScreen('results-screen');
+    const myResult = rankings.find(r => r.name === myName);
+    if (myResult) {
+      document.getElementById('my-time').textContent =
+        `${myResult.medal || ''} Your time: ${myResult.ms}ms — Rank #${myResult.rank}`;
+    }
+    document.getElementById('results-body').innerHTML = rankings.map(r => `
+      <tr>
+        <td style="font-size:1.5rem">${r.medal || '#' + r.rank}</td>
+        <td>${r.name}</td>
+        <td><strong>${r.ms}</strong> ms</td>
+      </tr>
+    `).join('');
+  }
+
+  // Auto connect on load
+  connect();
+</script>
+</body>
+</html>
