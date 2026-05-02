@@ -150,6 +150,31 @@ Now go back to **Lambda → player-service → Test tab**:
 
 ---
 
+## Step 7: Check GitHub Actions
+
+The CI/CD pipeline runs automatically every time someone pushes code. It installs Lambda dependencies and validates the Terraform infrastructure config.
+
+1. Go to https://github.com/0zyad/reaction-speed-game
+2. Click the **Actions** tab
+3. You will see green checkmark runs — **screenshot the most recent green one**
+
+What to say about it in the demo:
+> "We have a CI/CD pipeline using GitHub Actions. Every push to the repo automatically installs dependencies and validates the infrastructure code. This is the Build/Release/Run factor — build, release, and run are completely separate stages."
+
+---
+
+## Screenshots You Must Take
+
+| Screenshot | Where |
+|---|---|
+| Lambda test result showing statusCode 200 | Lambda → player-service → Test tab |
+| DynamoDB Players table with test data | DynamoDB → Players → Explore items |
+| DynamoDB Players row showing reactionMs: 243 | Same table after submitReaction test |
+| CloudWatch logs from player-service | CloudWatch → Log groups → /aws/lambda/player-service |
+| GitHub Actions green run | https://github.com/0zyad/reaction-speed-game/actions |
+
+---
+
 ## Important Info
 
 | Item | Value |

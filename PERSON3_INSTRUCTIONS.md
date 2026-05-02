@@ -117,9 +117,28 @@ If this works — the full system is working end to end.
 
 ## Step 7: Check GitHub Actions (for demo)
 
+The CI/CD pipeline runs automatically every time someone pushes code. It installs Lambda dependencies and validates the Terraform infrastructure config.
+
 1. Go to https://github.com/0zyad/reaction-speed-game
 2. Click the **Actions** tab
-3. You should see green checkmark runs — **screenshot this**
+3. You will see green checkmark runs — **screenshot the most recent green one**
+
+What to say about it in the demo:
+> "We have a CI/CD pipeline using GitHub Actions. Every push to the repo automatically installs dependencies and validates the infrastructure code. This is the Build/Release/Run factor — build, release, and run are completely separate stages."
+
+---
+
+## Screenshots You Must Take
+
+| Screenshot | Where |
+|---|---|
+| Game home screen showing Connected ✅ | frontend/index.html in browser |
+| Lobby with 3 players joined | 3 browser tabs open, all in lobby |
+| Green flash screen (all 3 tabs) | During game — screenshot fast when screen goes green |
+| Results leaderboard with millisecond times | After all 3 players click |
+| CloudWatch logs after real game | CloudWatch → Log groups → /aws/lambda/player-service |
+| GitHub Actions green run | https://github.com/0zyad/reaction-speed-game/actions |
+| DynamoDB Players table with real game data | DynamoDB → Players → Explore items |
 
 ---
 
