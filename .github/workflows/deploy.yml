@@ -7,34 +7,63 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          node-version: '20'
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
 
-      - name: Install Lambda dependencies
-        run: |
-          cd lambdas/game-service && npm install
-          cd ../player-service && npm install
-          cd ../result-service && npm install
+      - name: Get AWS Account ID
+        run: echo "AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)" >> $GITHUB_ENV
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
 
       - name: Terraform Init
         run: cd terraform && terraform init
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: us-east-1
 
-      - name: Terraform Validate
-        run: cd terraform && terraform validate
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: us-east-1
+      - name: Create ECR repositories
+        run: |
+          cd terraform && terraform apply             -target=aws_ecr_repository.game_service             -target=aws_ecr_repository.player_service             -target=aws_ecr_repository.result_service             -auto-approve
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region us-east-1 |           docker login --username AWS --password-stdin ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+
+      - name: Build and push game-service
+        run: |
+          ECR="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com"
+          docker build -t $ECR/reaction-game-service:latest ./lambdas/game-service
+          docker push $ECR/reaction-game-service:latest
+
+      - name: Build and push player-service
+        run: |
+          ECR="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com"
+          docker build -t $ECR/reaction-player-service:latest ./lambdas/player-service
+          docker push $ECR/reaction-player-service:latest
+
+      - name: Build and push result-service
+        run: |
+          ECR="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com"
+          docker build -t $ECR/reaction-result-service:latest ./lambdas/result-service
+          docker push $ECR/reaction-result-service:latest
+
+      - name: Terraform Apply (full infrastructure)
+        run: cd terraform && terraform apply -auto-approve
+
+      - name: Deploy frontend to S3
+        run: aws s3 cp frontend/index.html s3://reaction-speed-game-frontend/index.html --content-type text/html
+
+      - name: Print deployed URLs
+        run: |
+          cd terraform
+          echo "WebSocket: $(terraform output -raw websocket_url)"
+          echo "Frontend:  $(terraform output -raw frontend_url)"
