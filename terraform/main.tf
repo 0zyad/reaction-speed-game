@@ -1,4 +1,9 @@
 ﻿terraform {
+  backend "s3" {
+    bucket = "reaction-game-tfstate-438825592512"
+    key    = "terraform.tfstate"
+    region = "us-east-1"
+  }
   required_providers {
     aws = { source = "hashicorp/aws", version = "~> 5.0" }
   }
