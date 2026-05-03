@@ -12,8 +12,14 @@ resource "aws_dynamodb_table" "games" {
   name         = "Games"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "gameId"
-  attribute { name = "gameId"; type = "S" }
-  ttl { attribute_name = "expiresAt"; enabled = true }
+  attribute {
+    name = "gameId"
+    type = "S"
+  }
+  ttl {
+    attribute_name = "expiresAt"
+    enabled = true
+  }
 }
 
 resource "aws_dynamodb_table" "players" {
@@ -21,8 +27,14 @@ resource "aws_dynamodb_table" "players" {
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "gameId"
   range_key    = "playerId"
-  attribute { name = "gameId";   type = "S" }
-  attribute { name = "playerId"; type = "S" }
+  attribute {
+    name = "gameId"
+    type = "S"
+  }
+  attribute {
+    name = "playerId"
+    type = "S"
+  }
 }
 
 resource "aws_dynamodb_table" "results" {
@@ -30,8 +42,14 @@ resource "aws_dynamodb_table" "results" {
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "gameId"
   range_key    = "playerId"
-  attribute { name = "gameId";   type = "S" }
-  attribute { name = "playerId"; type = "S" }
+  attribute {
+    name = "gameId"
+    type = "S"
+  }
+  attribute {
+    name = "playerId"
+    type = "S"
+  }
 }
 
 resource "aws_ecr_repository" "game_service"   { name = "reaction-game-service";   image_tag_mutability = "MUTABLE"; force_delete = true }
@@ -74,11 +92,13 @@ resource "aws_lambda_function" "game_service" {
   package_type  = "Image"
   image_uri     = "${aws_ecr_repository.game_service.repository_url}:latest"
   timeout       = 30
-  environment { variables = {
+  environment {
+    variables = {
     GAMES_TABLE   = aws_dynamodb_table.games.name
     PLAYERS_TABLE = aws_dynamodb_table.players.name
     WS_ENDPOINT   = aws_apigatewayv2_api.ws.api_endpoint
-  } }
+  }
+  }
   depends_on = [aws_ecr_repository.game_service]
 }
 
@@ -88,11 +108,13 @@ resource "aws_lambda_function" "player_service" {
   package_type  = "Image"
   image_uri     = "${aws_ecr_repository.player_service.repository_url}:latest"
   timeout       = 30
-  environment { variables = {
+  environment {
+    variables = {
     PLAYERS_TABLE = aws_dynamodb_table.players.name
     GAMES_TABLE   = aws_dynamodb_table.games.name
     WS_ENDPOINT   = aws_apigatewayv2_api.ws.api_endpoint
-  } }
+  }
+  }
   depends_on = [aws_ecr_repository.player_service]
 }
 
@@ -102,11 +124,13 @@ resource "aws_lambda_function" "result_service" {
   package_type  = "Image"
   image_uri     = "${aws_ecr_repository.result_service.repository_url}:latest"
   timeout       = 30
-  environment { variables = {
+  environment {
+    variables = {
     PLAYERS_TABLE = aws_dynamodb_table.players.name
     RESULTS_TABLE = aws_dynamodb_table.results.name
     WS_ENDPOINT   = aws_apigatewayv2_api.ws.api_endpoint
-  } }
+  }
+  }
   depends_on = [aws_ecr_repository.result_service]
 }
 
@@ -137,8 +161,12 @@ resource "aws_s3_bucket_public_access_block" "frontend" {
 
 resource "aws_s3_bucket_website_configuration" "frontend" {
   bucket = aws_s3_bucket.frontend.id
-  index_document { suffix = "index.html" }
-  error_document { key = "index.html" }
+  index_document {
+    suffix = "index.html"
+  }
+  error_document {
+    key = "index.html"
+  }
 }
 
 resource "aws_s3_bucket_policy" "frontend" {
